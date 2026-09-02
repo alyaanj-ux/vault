@@ -258,7 +258,16 @@ Vault is a launcher, so it is built to stay resident rather than be cold-started
 
 ## Building distributables
 
-`npm run build` produces an NSIS installer and a portable exe in `release/`. Two gotchas:
+`npm run build` produces exactly ONE artifact: `release/Vault-Setup-<version>.exe`.
+
+That is deliberate. Shipping an installer *and* a portable exe made people ask which one they
+were supposed to download, so the portable target was dropped. The NSIS installer is per-user
+(`perMachine: false`), so it never triggers a UAC prompt, and it carries the whole Electron
+runtime — there is nothing else for anyone to fetch. `files` ships `dist/` and `assets/` only;
+the raw renderer sources are not packaged because `copy-static` already places the html and css
+under `dist/renderer/`.
+
+Two gotchas:
 
 - **The icon must be at least 256x256** or electron-builder hard-fails. `assets/icon.ico` is a
   7-size ICO (16 through 256) with PNG-compressed entries, generated from the app's own palette.

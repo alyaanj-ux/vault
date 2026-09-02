@@ -59,13 +59,16 @@ opposite of that.
 
 ### Install
 
-Download from the [Releases](../../releases) page. Windows 10 or 11, 64-bit. You do **not** need
-Node.js, a build step, or anything from a terminal — these are ordinary Windows programs.
+**One file, one download.** Grab `Vault-Setup-<version>.exe` from the
+[Releases](../../releases) page and run it. Windows 10 or 11, 64-bit.
 
-| Download | What it does |
-|---|---|
-| `Vault Setup <version>.exe` | Installs Vault with Start Menu and desktop shortcuts. You choose the install folder, and it uninstalls from Windows Settings like anything else. |
-| `Vault <version>.exe` | Portable. Run it from anywhere, including a USB stick. Installs nothing. |
+That single installer contains everything Vault needs, including its own runtime. There is
+nothing else to download, no Node.js, no build step, and nothing to do in a terminal. It:
+
+- installs to your user folder, so it never asks for an administrator password
+- adds a desktop shortcut and a Start Menu entry
+- lets you choose the install folder if you'd rather not use the default
+- uninstalls from Windows Settings like any other program, leaving your library intact
 
 Vault isn't code-signed yet, so Windows SmartScreen may warn you the first time. Click
 **More info → Run anyway**. The full source is here if you'd rather build it yourself.
@@ -108,10 +111,10 @@ git clone https://github.com/alyaanj-ux/vault.git
 cd vault
 npm install
 npm run dev      # compile, bundle, and launch
-npm run build    # produce an installer and portable exe in release/
+npm run build    # produce the installer in release/
 ```
 
-`npm run build` writes `Vault Setup <version>.exe` and `Vault <version>.exe` into `release/`.
+`npm run build` writes a single self-contained `Vault-Setup-<version>.exe` into `release/`.
 
 On Windows, electron-builder unpacks a signing toolchain containing macOS symlinks, and creating
 those needs a privilege normal accounts don't have. If the build stops with `Cannot create
