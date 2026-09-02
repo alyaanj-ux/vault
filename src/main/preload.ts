@@ -19,4 +19,5 @@ contextBridge.exposeInMainWorld('vault', {
     ipcRenderer.invoke('scrape-art', gameId, term),
   scrapeAllArt: (): Promise<{ success: boolean; updated?: number; error?: string }> => ipcRenderer.invoke('scrape-all-art'),
   onScrapeProgress: (cb: (p: ScrapeProgress) => void) => ipcRenderer.on('scrape-progress', (_e, p) => cb(p)),
+  onRescanRequested: (cb: () => void) => ipcRenderer.on('rescan-requested', () => cb()),
 });

@@ -15,6 +15,9 @@ const DEFAULT_SETTINGS: Settings = {
   emulatorPaths: {},
   theme: 'dark',
   gridView: true,
+  minimizeToTray: true,
+  launchAtStartup: false,
+  startMinimized: false,
 };
 
 function ensureVaultDir(): void {

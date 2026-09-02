@@ -29,6 +29,9 @@ opposite of that.
   analytics. Your library lives in a JSON file in your own AppData folder.
 - **Hide what you don't want.** Right-click anything you'd rather not see — redistributables,
   tools, that one game — and it disappears from every view, permanently.
+- **It stays out of your way.** Vault lives in the system tray. Close the window and it keeps
+  running quietly; click the tray icon whenever you want your library back. It can start with
+  Windows too, so it's simply always there.
 
 ---
 
@@ -56,8 +59,16 @@ opposite of that.
 
 ### Install
 
-Grab the installer or the portable `.exe` from the
-[Releases](../../releases) page and run it. Windows 10 or 11, 64-bit.
+Download from the [Releases](../../releases) page. Windows 10 or 11, 64-bit. You do **not** need
+Node.js, a build step, or anything from a terminal — these are ordinary Windows programs.
+
+| Download | What it does |
+|---|---|
+| `Vault Setup <version>.exe` | Installs Vault with Start Menu and desktop shortcuts. You choose the install folder, and it uninstalls from Windows Settings like anything else. |
+| `Vault <version>.exe` | Portable. Run it from anywhere, including a USB stick. Installs nothing. |
+
+Vault isn't code-signed yet, so Windows SmartScreen may warn you the first time. Click
+**More info → Run anyway**. The full source is here if you'd rather build it yourself.
 
 ### First run
 
@@ -74,6 +85,20 @@ Two optional settings make it better:
 A Steam Web API key is *not* required. It only adds games you own but have never installed or
 launched on this machine.
 
+### Living in the tray
+
+Vault is meant to stay running so your library is always one click away, rather than something
+you launch and wait for.
+
+- **Closing the window hides Vault in the notification area** instead of quitting. Click the tray
+  icon to bring it back, or right-click it for *Open Vault*, *Rescan Library* and *Quit Vault*.
+- **Windows 11 hides new tray icons by default.** If you don't see Vault's bolt, click the `^`
+  chevron next to the clock, then drag the icon out to keep it visible.
+- **Settings → Startup & Tray** turns this off if you'd rather Vault quit on close, and lets you
+  start Vault with Windows, optionally straight into the tray so it never interrupts your login.
+- Launching Vault again while it's in the tray brings the existing window forward. It never opens
+  twice.
+
 ### Build from source
 
 You'll need [Node.js](https://nodejs.org/) 18 or newer.
@@ -85,6 +110,19 @@ npm install
 npm run dev      # compile, bundle, and launch
 npm run build    # produce an installer and portable exe in release/
 ```
+
+`npm run build` writes `Vault Setup <version>.exe` and `Vault <version>.exe` into `release/`.
+
+On Windows, electron-builder unpacks a signing toolchain containing macOS symlinks, and creating
+those needs a privilege normal accounts don't have. If the build stops with `Cannot create
+symbolic link`, either turn on Windows **Developer Mode**, or pre-extract the cached archive
+without the macOS files:
+
+```bash
+7za x "<cache>/winCodeSign/<hash>.7z" -o"<cache>/winCodeSign/winCodeSign-2.6.0" -xr'!darwin'
+```
+
+where `<cache>` is `%LOCALAPPDATA%/electron-builder/Cache`.
 
 ---
 
@@ -102,6 +140,7 @@ src/
     library.ts     Merge, de-duplicate and persist the library
     settings.ts    Settings persistence
     findExe.ts     Picks a game's real executable out of a folder full of them
+    tray.ts        System tray icon and menu
     scraper.ts     Cover art lookup and caching
     appinfo.ts     Reads Steam's binary metadata cache
     sfo.ts         Reads PlayStation PARAM.SFO title data

@@ -57,6 +57,12 @@ export interface Settings {
   };
   theme: 'dark' | 'light';
   gridView: boolean;
+  /** Closing the window hides it to the notification area instead of quitting. */
+  minimizeToTray: boolean;
+  /** Register Vault to start with Windows. Only applied in a packaged build. */
+  launchAtStartup: boolean;
+  /** When started automatically, open straight to the tray without showing the window. */
+  startMinimized: boolean;
 }
 
 export interface ScanResult {

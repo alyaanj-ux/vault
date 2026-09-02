@@ -125,6 +125,33 @@ export class SettingsPanel {
           </div>
         </div>
 
+        <div class="settings-section">
+          <h3>Startup &amp; Tray</h3>
+          <div class="toggle-row">
+            <span class="toggle-label">Keep Vault in the tray when closed</span>
+            <label class="toggle">
+              <input type="checkbox" id="tray-toggle" ${s.minimizeToTray !== false ? 'checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <span class="field-hint">Closing the window hides Vault in the notification area instead of quitting, so your library is one click away. Right-click the tray icon to quit properly.</span>
+          <div class="toggle-row">
+            <span class="toggle-label">Start Vault when Windows starts</span>
+            <label class="toggle">
+              <input type="checkbox" id="startup-toggle" ${s.launchAtStartup ? 'checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Start hidden in the tray</span>
+            <label class="toggle">
+              <input type="checkbox" id="startmin-toggle" ${s.startMinimized ? 'checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <span class="field-hint">Only applies when Windows starts Vault for you. Your library scans quietly in the background and the window opens instantly when you click the tray icon.</span>
+        </div>
+
         <div class="settings-section" style="grid-column:1/-1">
           <h3>Watched Folders</h3>
           <div class="field-hint" style="margin-bottom:6px">Vault scans these folders for game executables and adds them to your library.</div>
@@ -223,6 +250,9 @@ export class SettingsPanel {
     this.settings.autoScrapeArt = !!(this.el.querySelector('#autoscrape-toggle') as HTMLInputElement)?.checked;
     this.settings.theme = (this.el.querySelector('#theme-toggle') as HTMLInputElement)?.checked ? 'light' : 'dark';
     this.settings.gridView = !(this.el.querySelector('#list-toggle') as HTMLInputElement)?.checked;
+    this.settings.minimizeToTray = !!(this.el.querySelector('#tray-toggle') as HTMLInputElement)?.checked;
+    this.settings.launchAtStartup = !!(this.el.querySelector('#startup-toggle') as HTMLInputElement)?.checked;
+    this.settings.startMinimized = !!(this.el.querySelector('#startmin-toggle') as HTMLInputElement)?.checked;
 
     const emuInputs = Array.from(this.el.querySelectorAll<HTMLInputElement>('.emu-path'));
     for (const input of emuInputs) {

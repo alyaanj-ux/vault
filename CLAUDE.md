@@ -32,6 +32,7 @@ src/
     library.ts    — merge/dedupe/persist to %APPDATA%\Vault\library.json
     settings.ts   — settings to %APPDATA%\Vault\settings.json
     findExe.ts    — heuristic: given install dir + game name, pick the right .exe
+    tray.ts       — system tray icon + menu (close-to-tray, launch at startup)
     scraper.ts    — artwork scraper (SteamGridDB + Steam store), caches to %APPDATA%\Vault\art\
     sfo.ts        — PARAM.SFO reader (PS3/PS4 title + category), used by the RPCS3/shadPS4 scanners
     appinfo.ts    — binary appcache/appinfo.vdf reader (Steam app names + types, no API key needed)
@@ -231,6 +232,40 @@ The Uninstalled tab works with **no API key**. Everything comes off disk:
   - If no AUMID resolves, the entry falls back to launching the executable.
 - Cover art starts as the package's own `SplashScreen.png` / `GraphicsLogo.png`, tagged
   `coverSource: 'icon'` so the scraper will replace it with real art when it finds a match.
+
+# Tray, startup and packaging
+
+Vault is a launcher, so it is built to stay resident rather than be cold-started every time.
+
+- **Single instance.** `app.requestSingleInstanceLock()` runs before `whenReady`. A second launch
+  quits immediately, and the `second-instance` event calls `showWindow()` on the original. Without
+  this, clicking the shortcut while Vault sits in the tray would start a second copy.
+- **Close hides, it does not quit.** The window's `close` handler calls `preventDefault()` and
+  `hide()` while `minimizeToTray` is on. `isQuitting` — set by the tray's Quit item and by
+  `before-quit` — is what lets a real quit through. `window-all-closed` must NOT quit while the
+  tray is enabled; that is the bug that makes tray apps die on close.
+- **Launch at startup** uses `app.setLoginItemSettings` with `args: ['--hidden']`, and is skipped
+  entirely when `!app.isPackaged`. In development `process.execPath` is electron.exe, so writing a
+  login item would register the dev runtime in the user's startup list.
+- `startMinimized` only takes effect when the `--hidden` argument is present, so starting Vault by
+  hand always shows the window. The window is CREATED either way, so the library is scanned and
+  ready by the time the user clicks the tray icon.
+- **Settings apply immediately.** The `save-settings` handler re-applies the login item and
+  creates or destroys the tray rather than waiting for a restart.
+- **The tray icon resolves from `app.getAppPath()/assets/icon.ico`**, which works both in
+  development and inside the packed asar. Failure is non-fatal: a missing icon logs a warning and
+  falls back to a blank image rather than stopping the app.
+
+## Building distributables
+
+`npm run build` produces an NSIS installer and a portable exe in `release/`. Two gotchas:
+
+- **The icon must be at least 256x256** or electron-builder hard-fails. `assets/icon.ico` is a
+  7-size ICO (16 through 256) with PNG-compressed entries, generated from the app's own palette.
+- **electron-builder's winCodeSign archive contains macOS symlinks** that a normal Windows account
+  cannot create, so extraction fails with `Cannot create symbolic link`. Fix it by enabling
+  Developer Mode, or by pre-extracting the cached `.7z` into a `winCodeSign-2.6.0` folder in the
+  same cache directory using `-xr'!darwin'`.
 
 # Platform limitations (intentional — don't "fix" these)
 

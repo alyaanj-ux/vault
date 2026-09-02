@@ -1,5 +1,6 @@
 import { findGameExe } from './findExe';
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { createTray, destroyTray } from './tray';
 import * as path from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
@@ -20,6 +21,49 @@ import { scanCustomFolders } from './scanners/folders';
 let mainWindow: BrowserWindow | null = null;
 let enrichRunning = false;
 let scrapeRunning = false;
+/** Set only by the tray's Quit item, so the close handler knows to let the app exit. */
+let isQuitting = false;
+
+/** Set by the installer shortcut / login item when Vault should boot straight to the tray. */
+const startedHidden = process.argv.includes('--hidden');
+
+function showWindow(): void {
+  if (!mainWindow) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  if (!mainWindow.isVisible()) mainWindow.show();
+  mainWindow.focus();
+}
+
+function quitApp(): void {
+  isQuitting = true;
+  destroyTray();
+  app.quit();
+}
+
+/**
+ * Register (or clear) the Windows startup entry.
+ *
+ * Only meaningful in a packaged build: in development `process.execPath` is electron.exe, so
+ * writing a login item would add a stray startup entry pointing at the dev runtime.
+ */
+function applyLaunchAtStartup(enabled: boolean): void {
+  if (!app.isPackaged) {
+    if (enabled) console.log('[Startup] Ignoring launch-at-startup in a development run');
+    return;
+  }
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      path: process.execPath,
+      args: ['--hidden'],
+    });
+  } catch (e) {
+    console.error('[Startup] Could not update the login item:', e);
+  }
+}
 
 function pushLibrary(): void {
   mainWindow?.webContents.send('library-updated', getLibrary());
@@ -108,6 +152,9 @@ function createWindow(): void {
       symbolColor: '#e0e0e0',
       height: 36,
     },
+    // Starting hidden means the window is built and scanning in the background while the user
+    // sees nothing but the tray icon; it is shown the moment they ask for it.
+    show: !(startedHidden && loadSettings().startMinimized),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -118,22 +165,55 @@ function createWindow(): void {
   const rendererPath = path.join(__dirname, '../renderer/index.html');
   mainWindow.loadFile(rendererPath);
 
+  mainWindow.on('close', (event) => {
+    // Closing keeps Vault running in the tray unless the user really is quitting
+    if (!isQuitting && loadSettings().minimizeToTray) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
-app.whenReady().then(() => {
-  createWindow();
-  registerIpcHandlers();
+// A launcher that lives in the tray must never open twice: clicking the shortcut again should
+// bring the existing window forward instead of starting a second copy.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => showWindow());
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  app.whenReady().then(() => {
+    const settings = loadSettings();
+    createWindow();
+    registerIpcHandlers();
+
+    if (settings.minimizeToTray) {
+      createTray({
+        onShow: showWindow,
+        onRescan: () => mainWindow?.webContents.send('rescan-requested'),
+        onQuit: quitApp,
+      });
+    }
+    applyLaunchAtStartup(settings.launchAtStartup);
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      else showWindow();
+    });
   });
+}
+
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  // With the tray enabled the app deliberately outlives its window
+  if (process.platform === 'darwin') return;
+  if (!loadSettings().minimizeToTray) app.quit();
 });
 
 function registerIpcHandlers(): void {
@@ -141,6 +221,18 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('save-settings', (_event, settings: Settings) => {
     saveSettings(settings);
+
+    // Apply the toggles that change app behaviour rather than just what's drawn
+    applyLaunchAtStartup(settings.launchAtStartup);
+    if (settings.minimizeToTray) {
+      createTray({
+        onShow: showWindow,
+        onRescan: () => mainWindow?.webContents.send('rescan-requested'),
+        onQuit: quitApp,
+      });
+    } else {
+      destroyTray();
+    }
     return { success: true };
   });
 

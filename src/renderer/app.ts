@@ -20,6 +20,7 @@ declare global {
       scrapeArt(gameId: string, term?: string): Promise<{ success: boolean; error?: string; coverArt?: string }>;
       scrapeAllArt(): Promise<{ success: boolean; updated?: number; error?: string }>;
       onScrapeProgress(cb: (p: ScrapeProgress) => void): void;
+      onRescanRequested(cb: () => void): void;
     };
   }
 }
@@ -58,6 +59,8 @@ async function init(): Promise<void> {
     updateSidebarCounts();
     renderContent();
   });
+  // "Rescan Library" in the tray menu
+  window.vault.onRescanRequested(() => { if (!isScanning) void runScan(); });
 }
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
