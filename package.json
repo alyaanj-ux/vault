@@ -1,0 +1,80 @@
+{
+  "name": "vault",
+  "version": "1.0.0",
+  "description": "Universal game library manager",
+  "author": "alyaanj-ux",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alyaanj-ux/vault.git"
+  },
+  "keywords": [
+    "electron",
+    "game-library",
+    "launcher",
+    "steam",
+    "game-manager",
+    "emulator",
+    "windows"
+  ],
+  "main": "dist/main/index.js",
+  "scripts": {
+    "copy-static": "node -e \"const fs=require('fs');fs.mkdirSync('dist/renderer/styles',{recursive:true});fs.copyFileSync('src/renderer/index.html','dist/renderer/index.html');fs.copyFileSync('src/renderer/styles/main.css','dist/renderer/styles/main.css');console.log('Static files copied');\"",
+    "dev": "tsc && webpack --config webpack.renderer.js && npm run copy-static && electron .",
+    "build": "tsc && webpack --config webpack.renderer.js && npm run copy-static && electron-builder",
+    "tsc": "tsc"
+  },
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "@node-steam/vdf": "^2.0.1",
+    "axios": "^1.6.7",
+    "ini": "^4.1.1",
+    "winreg": "^1.2.4"
+  },
+  "devDependencies": {
+    "@types/ini": "^4.1.0",
+    "@types/node": "^20.11.16",
+    "@types/winreg": "^1.2.36",
+    "electron": "^28.2.3",
+    "electron-builder": "^24.9.4",
+    "ts-loader": "^9.6.0",
+    "typescript": "^5.3.3",
+    "webpack": "^5.107.2",
+    "webpack-cli": "^7.0.3"
+  },
+  "build": {
+    "appId": "com.vault.gamelibrary",
+    "productName": "Vault",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/renderer/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
