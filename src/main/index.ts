@@ -27,6 +27,32 @@ let isQuitting = false;
 /** Set by the installer shortcut / login item when Vault should boot straight to the tray. */
 const startedHidden = process.argv.includes('--hidden');
 
+/**
+ * Tells Windows this process is Vault rather than a generic Electron host. Without it the taskbar
+ * groups the window under Electron, shows Electron's icon, and attributes notifications to
+ * Electron. Must be set before the first window is created.
+ */
+app.setAppUserModelId('com.vault.gamelibrary');
+
+/**
+ * Vault's own icon for the window and taskbar. A packaged build picks this up from the exe's
+ * resources, but in development the running process is electron.exe, so without an explicit icon
+ * the window would wear Electron's.
+ */
+function appIcon(): string | undefined {
+  const candidates = [
+    path.join(app.getAppPath(), 'assets', 'icon.ico'),
+    path.join(__dirname, '..', '..', 'assets', 'icon.ico'),
+  ];
+  return candidates.find((p) => {
+    try {
+      return fs.existsSync(p);
+    } catch {
+      return false;
+    }
+  });
+}
+
 function showWindow(): void {
   if (!mainWindow) {
     createWindow();
@@ -146,15 +172,18 @@ function createWindow(): void {
     minWidth: 900,
     minHeight: 600,
     backgroundColor: '#0f0f11',
+    icon: appIcon(),
+    title: 'Vault',
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#0f0f11',
       symbolColor: '#e0e0e0',
       height: 36,
     },
-    // Starting hidden means the window is built and scanning in the background while the user
-    // sees nothing but the tray icon; it is shown the moment they ask for it.
-    show: !(startedHidden && loadSettings().startMinimized),
+    // Never show the window at construction time. Presenting it before the renderer's first
+    // paint leaves a blank pane — the frame is up but nothing has been composited into it yet.
+    // It is shown from 'ready-to-show' below instead.
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -164,6 +193,22 @@ function createWindow(): void {
 
   const rendererPath = path.join(__dirname, '../renderer/index.html');
   mainWindow.loadFile(rendererPath);
+
+  // Starting hidden means the window is still built and the library still scans in the
+  // background; only the presenting is skipped until the user asks for it via the tray.
+  const openHidden = startedHidden && loadSettings().startMinimized;
+  let shown = false;
+  const revealOnce = (): void => {
+    if (shown || openHidden) return;
+    shown = true;
+    mainWindow?.show();
+  };
+
+  // 'ready-to-show' fires once the renderer has painted a frame, so the window is never
+  // presented empty. 'did-finish-load' is a backstop: if the first event is ever missed the
+  // window must still appear, or the app looks dead with only a tray icon.
+  mainWindow.once('ready-to-show', revealOnce);
+  mainWindow.webContents.once('did-finish-load', () => setTimeout(revealOnce, 250));
 
   mainWindow.on('close', (event) => {
     // Closing keeps Vault running in the tray unless the user really is quitting

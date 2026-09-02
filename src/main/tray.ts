@@ -24,6 +24,7 @@ let tray: Tray | null = null;
 function resolveIcon(): NativeImage {
   const candidates = [
     path.join(app.getAppPath(), 'assets', 'icon.ico'),
+    path.join(app.getAppPath(), 'assets', 'icon.png'),
     path.join(process.resourcesPath ?? '', 'assets', 'icon.ico'),
     path.join(__dirname, '..', '..', 'assets', 'icon.ico'),
   ];
